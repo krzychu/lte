@@ -4,6 +4,7 @@ import sqlite3
 import os.path
 import json
 import pdb
+import base64
 from contextlib import closing
 import cStringIO as StringIO
 
@@ -60,11 +61,11 @@ def execute(sim, seed):
 def dump_to_string(array):
     with closing(StringIO.StringIO()) as out:
         numpy.save(out, array) 
-        return out.getvalue()
+        return base64.b64encode(out.getvalue())
 
 
 def load_from_string(data):
-    with closing(StringIO.StringIO(data)) as inp:
+    with closing(StringIO.StringIO(base64.b64decode(data))) as inp:
         return numpy.load(inp)
 
 
@@ -111,8 +112,8 @@ class SqlStorage:
 
     def add_simulation(self, sim):
         t = (sim.num_users, sim.duration, \
-            sim.channel.__name__, json.dumps(sim.channel_args), \
-            sim.scheduler.__name__, json.dumps(sim.scheduler_args))
+            type(sim.channel).__name__, json.dumps(sim.channel_args), \
+            type(sim.scheduler).__name__, json.dumps(sim.scheduler_args))
             
         with closing(self.connection.cursor()) as c:
             c.execute('INSERT INTO Simulation VALUES (?, ?, ?, ?, ?, ?)', t)
@@ -122,8 +123,7 @@ class SqlStorage:
         if not sim in self.sim_id:
             raise Exception('Simulation not in the database')
 
-        t = (self.sim_id[sim], exe.sim, \
+        t = (self.sim_id[sim], exe.seed, \
             dump_to_string(exe.rate_history), dump_to_string(exe.selection_history))
 
         self.connection.execute('INSERT INTO Execution VALUES (?, ?, ?, ?)', t)
-
