@@ -142,3 +142,8 @@ class SqlStorage:
         with closing(self.connection.execute(q, t)) as c:
             return self.parse_execution(c.fetchone())
 
+    def get_all_executions(self, simulation_rowid):
+        q = 'SELECT * FROM Execution WHERE simulation_id = ?'
+        t = (simulation_rowid,)
+        with closing(self.connection.execute(q, t)) as c:
+            return map(self.parse_execution, c.fetchall())

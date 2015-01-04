@@ -81,5 +81,9 @@ class SqlStorageTest(unittest.TestCase):
             self.assert_executions_equal(ex1, r1)
             self.assert_executions_equal(ex2, r2)
 
+            rs = storage.get_all_executions(1)
+            self.assert_executions_equal(ex1, rs[0])
+            self.assert_executions_equal(ex2, rs[1])
+
 if __name__ == "__main__":
     unittest.main()
