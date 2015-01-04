@@ -29,6 +29,12 @@ class SqlStorageTest(unittest.TestCase):
 
             return (num_sim, num_exec)
 
+    def assert_executions_equal(self, expected, actual):
+        self.assertEqual(expected.seed, actual.seed)
+        self.assertTrue(numpy.all(expected.rate_history == actual.rate_history))
+        self.assertTrue(numpy.all(expected.selection_history == \
+                actual.selection_history))
+
     def setUp(self):
         if os.path.isfile(self.tempfile):
             os.unlink(self.tempfile)
@@ -57,6 +63,23 @@ class SqlStorageTest(unittest.TestCase):
         
         self.assertEqual((1, 10), self.count())
 
+    def test_retrieves_executions(self):
+        sim = inf.Simulation()
+        ex1, ex2 = None, None
+        with inf.SqlStorage(self.tempfile) as storage:
+            storage.add_simulation(sim)
+            ex1 = inf.Execution(1, numpy.random.rand(5, 5), numpy.random.rand(5, 5))
+            ex2 = inf.Execution(2, numpy.random.rand(5, 5), numpy.random.rand(5, 5))
+            
+            storage.add_execution(sim, ex1)
+            storage.add_execution(sim, ex2)
+
+        with inf.SqlStorage(self.tempfile) as storage:
+            r1 = storage.get_execution(1)
+            r2 = storage.get_execution(2)
+
+            self.assert_executions_equal(ex1, r1)
+            self.assert_executions_equal(ex2, r2)
 
 if __name__ == "__main__":
     unittest.main()

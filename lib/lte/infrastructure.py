@@ -92,16 +92,16 @@ CREATE TABLE Execution
 );
 '''
 
-
 class SqlStorage:
     def __init__(self, filename):
-        if os.path.isfile(filename):
-            raise IOError('file %s already exists' % (filename,))
-
-        self.connection = sqlite3.connect(filename)
-        self.connection.execute(create_simulations_table)
-        self.connection.execute(create_executions_table)
+        self.existed = os.path.isfile(filename)
         self.sim_id = {}
+        self.connection = sqlite3.connect(filename)
+        self.connection.row_factory = sqlite3.Row
+
+        if not self.existed:
+            self.connection.execute(create_simulations_table)
+            self.connection.execute(create_executions_table)
 
     def __enter__(self):
         return self
@@ -111,6 +111,7 @@ class SqlStorage:
         self.connection.close()
 
     def add_simulation(self, sim):
+        assert not self.existed
         t = (sim.num_users, sim.duration, \
             type(sim.channel).__name__, json.dumps(sim.channel_args), \
             type(sim.scheduler).__name__, json.dumps(sim.scheduler_args))
@@ -120,6 +121,7 @@ class SqlStorage:
             self.sim_id[sim] = c.lastrowid
 
     def add_execution(self, sim, exe):
+        assert not self.existed
         if not sim in self.sim_id:
             raise Exception('Simulation not in the database')
 
@@ -127,3 +129,16 @@ class SqlStorage:
             dump_to_string(exe.rate_history), dump_to_string(exe.selection_history))
 
         self.connection.execute('INSERT INTO Execution VALUES (?, ?, ?, ?)', t)
+
+    def parse_execution(self, row):
+        seed = int(row['seed'])
+        rates = load_from_string(row['rate_history'])
+        selections = load_from_string(row['selection_history'])
+        return Execution(seed, rates, selections)
+
+    def get_execution(self, execution_rowid):
+        q = 'SELECT * FROM Execution WHERE rowid = ?'
+        t = (execution_rowid,)
+        with closing(self.connection.execute(q, t)) as c:
+            return self.parse_execution(c.fetchone())
+
