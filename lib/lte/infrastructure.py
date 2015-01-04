@@ -9,17 +9,6 @@ from contextlib import closing
 import cStringIO as StringIO
 
 
-def create_with_args(cls, args, sim):
-    parts = cls.split('.')
-    modulename = '.'.join(parts[:-1])
-    classname = parts[-1]
-
-    module = importlib.import_module(modulename)
-    constructor = getattr(module, classname)
-
-    return constructor(sim, **args)
-
-
 class Simulation:
     def __init__(self):
         self.num_users = 32
@@ -39,9 +28,9 @@ class Execution:
         self.selection_history = selection_history
 
 
-def execute(sim, seed):
-    channel = create_with_args(sim.channel, sim.channel_args, sim)
-    scheduler = create_with_args(sim.scheduler, sim.scheduler_args, sim)
+def execute_once(sim, seed):
+    channel = sim.channel(sim, **sim.channel_args)
+    scheduler = sim.scheduler(sim, **sim.scheduler_args)
    
     rate_history = []
     selection_history = []
@@ -52,10 +41,17 @@ def execute(sim, seed):
         active_user = scheduler.get_active_user(rates)
         selection_history.append(active_user)
 
-    rate_history = np.array(rate_history)
-    selection_history = np.array(selection_history)
+    rate_history = numpy.array(rate_history)
+    selection_history = numpy.array(selection_history)
 
     return Execution(seed, rate_history, selection_history)
+
+
+def execute_all(storage, sim, num_repetitions):
+    storage.add_simulation(sim)
+    for i in xrange(num_repetitions):
+        execution = execute_once(sim, i)
+        storage.add_execution(sim, execution)
 
 
 def dump_to_string(array):
@@ -113,8 +109,8 @@ class SqlStorage:
     def add_simulation(self, sim):
         assert not self.existed
         t = (sim.num_users, sim.duration, \
-            type(sim.channel).__name__, json.dumps(sim.channel_args), \
-            type(sim.scheduler).__name__, json.dumps(sim.scheduler_args))
+            str(sim.channel), json.dumps(sim.channel_args), \
+            str(sim.scheduler), json.dumps(sim.scheduler_args))
             
         with closing(self.connection.cursor()) as c:
             c.execute('INSERT INTO Simulation VALUES (?, ?, ?, ?, ?, ?)', t)
@@ -147,3 +143,4 @@ class SqlStorage:
         t = (simulation_rowid,)
         with closing(self.connection.execute(q, t)) as c:
             return map(self.parse_execution, c.fetchall())
+

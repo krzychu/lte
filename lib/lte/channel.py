@@ -33,7 +33,7 @@ class Constant:
         self.rates = numpy.array(rates)
 
     def next_rates(self):
-        return rates
+        return self.rates
 
 
 class SimpleRayleigh:
