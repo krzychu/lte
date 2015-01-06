@@ -40,8 +40,11 @@ class Execution:
         trans = numpy.zeros(self.get_rate_shape())
         ts = range(self.get_duration())
         hs = self.selection_history
-        trans[ts, hs] = rates[ts, hs]
+        trans[ts, hs] = self.rate_history[ts, hs]
         return trans
+
+    def get_transmitted_rates(self):
+        return self.rate_history[range(self.get_duration()), self.selection_history]
 
 
 def execute_once(sim, seed):

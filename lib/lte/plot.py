@@ -1,4 +1,5 @@
 import numpy
+import pdb
 
 
 class Plot:
@@ -51,17 +52,17 @@ class RoundEfficiency(Plot):
         Plot.__init__(self, simulation_id, label, color)    
 
     def get_efficiencies(self, execution):
-        rates = numpy.sum(execution.rate_history, axis=1)
-        trans = execution.rate_history[execution.selection_history]
+        rates = numpy.sum(execution.rate_history, axis=1, dtype='f')
+        trans = execution.get_transmitted_rates()
         return trans[rates != 0] / rates[rates != 0]
 
     def draw(self, executions, plotter):
-        plotter.xlabel('Probability')
-        plotter.ylabel('Efficiency')
+        plotter.ylabel('Probability')
+        plotter.xlabel('Efficiency')
 
         efficiencies = numpy.sort(numpy.hstack([self.get_efficiencies(x) for x in executions]))
-        xs = numpy.arange(len(efficiencies)) / len(efficiencies)
-        plotter.plot(xs, efficiencies, **self.common_args)
+        ys = numpy.arange(len(efficiencies), dtype='f') / len(efficiencies)
+        plotter.plot(efficiencies, ys, **self.common_args)
 
 
 class Welfare(Plot):
@@ -72,11 +73,14 @@ class Welfare(Plot):
         plotter.xlabel('Time')
         plotter.ylabel('Welfare')
         n = len(executions)
-        avg = np.zeros(executions[0].get_duration())
+        avg = numpy.zeros(executions[0].get_duration())
         for execution in executions:
             trans_sum = numpy.cumsum(execution.get_transmissions(), axis=0)
-            welfare = numpy.sum(numpy.log(trans_sum), axis=1)
+            welfare = numpy.sum(numpy.log(trans_sum + 1e-6), axis=1)
             welfare[welfare < 0] = 0
             avg += welfare / n
         
         plotter.plot(numpy.arange(len(avg)), avg, **self.common_args)
+
+
+
