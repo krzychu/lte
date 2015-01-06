@@ -27,6 +27,22 @@ class Execution:
         self.rate_history = rate_history
         self.selection_history = selection_history
 
+    def get_rate_shape(self):
+        return self.rate_history.shape
+
+    def get_duration(self):
+        return self.rate_history.shape[0]
+
+    def get_num_users(self):
+        return self.rate_history.shape[1]
+
+    def get_transmissions(self):
+        trans = numpy.zeros(self.get_rate_shape())
+        ts = range(self.get_duration())
+        hs = self.selection_history
+        trans[ts, hs] = rates[ts, hs]
+        return trans
+
 
 def execute_once(sim, seed):
     channel = sim.channel(sim, **sim.channel_args)
