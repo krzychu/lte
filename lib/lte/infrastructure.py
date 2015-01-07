@@ -49,7 +49,7 @@ class Execution:
 
 def execute_once(sim, seed):
     channel = sim.channel(sim, **sim.channel_args)
-    scheduler = sim.scheduler(sim, **sim.scheduler_args)
+    scheduler = sim.scheduler(sim, channel, **sim.scheduler_args)
    
     rate_history = []
     selection_history = []

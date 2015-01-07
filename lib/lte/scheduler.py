@@ -1,11 +1,12 @@
 import numpy
+import pdb
 
 
 class MaxRate:
     '''
     Always selects user with highest rate
     '''
-    def __init__(self, simulation):
+    def __init__(self, simulation, channel):
         pass
 
     def get_active_user(self, rates):
@@ -13,7 +14,7 @@ class MaxRate:
 
 
 class ProportionalFair:
-    def __init__(self, simulation, tau):
+    def __init__(self, simulation, channel, tau):
         '''
         during execution of this algorithm, accululated transfer decays
         exponentially with rate tau
@@ -22,10 +23,10 @@ class ProportionalFair:
         self.average = numpy.zeros(simulation.num_users)
 
     def get_active_user(self, rates):
-        if rates.shape != self.average:
+        if rates.shape != self.average.shape:
             raise TypeError("rates shape is {0} but should be {1}" % (rates.shape, self.average.shape))
 
-        selected = numpy.argmax(rates / self.average)
+        selected = numpy.argmax(rates / (self.average + 1e-10))
         self.average *= 1.0 - self.tau
         self.average[selected] += self.tau * rates[selected]
 
@@ -33,28 +34,30 @@ class ProportionalFair:
 
 
 class RoundRobin:
-    def __init__(self, simulation):
+    def __init__(self, simulation, channel):
         self.simulation = simulation
+        self.time = 0
 
     def get_active_user(self, rates):
-        return self.simulation.time % self.simulation.num_users
+        self.time += 1
+        return self.time % self.simulation.num_users
 
 
 
 def uwr_potential_value(position):
-    outer = 1.0 / np.outer(position, position) 
-    outer -= np.triu(outer)
-    return np.sum(outer.flatten()) 
+    outer = 1.0 / numpy.outer(position, position) 
+    outer -= numpy.triu(outer)
+    return numpy.sum(outer.flatten()) 
 
 
 def uwr_potential_derivatives(position):
-    inv = 1.0 / position
-    base = np.sum(inv) - inv
+    inv = 1.0 / (position + 1e-10)
+    base = numpy.sum(inv) - inv
     return - base * inv * inv
 
 
 def uwr_position(constants, total, possible):
-    return constants.A * total - constants.delta * possible
+    return constants.A + total - constants.delta * possible
 
 
 def uwr_update_possible(constants, rates, possible):
@@ -86,8 +89,9 @@ class UwrConstants:
 
 
 class Uwr:
-    def __init__(self, simulation, max_capacity, decay_rate):
-        self.constants = UwrConstants(simulation.num_users, max_capacity, decay_rate)
+    def __init__(self, simulation, channel, decay_rate):
+        self.constants = UwrConstants(simulation.num_users, \
+                channel.max_bits_per_interval(), decay_rate)
         self.total = numpy.zeros(simulation.num_users)
         self.possible = numpy.zeros(simulation.num_users)
 
@@ -105,26 +109,26 @@ class Uwr:
         raise NotImplementedError()
 
     def get_active_user(self, rates):
-        selected = self.select(rate)
-        self.update_state(self, rates, selected)
+        selected = self.select(rates)
+        self.update_state(rates, selected)
         return selected
 
 
 class MaxRateUwr(Uwr):
-    def __init__(self, simulation, num_users, max_capacity, decay_rate):
-        Uwr.__init__(self, simulation, num_users, max_capacity, decay_rate)
+    def __init__(self, simulation, channel, decay_rate):
+        Uwr.__init__(self, simulation, channel, decay_rate)
 
     def select(self, rates):
         best = None
-        t = self.get_updated_total(rates)
-        for i in xrange(self.num_users):
-            p = self.get_updated_possible(rates, i)
+        p = self.get_updated_possible(rates)
+        for i in xrange(self.constants.num_users):
+            t = self.get_updated_total(rates, i)
             
             if not uwr_is_feasible(self.constants, t, p):
                 continue
 
             current = (rates[i], i)
-            if not best or best < current
+            if not best or best < current:
                 best = current
 
         assert best
@@ -132,8 +136,8 @@ class MaxRateUwr(Uwr):
 
 
 class ClassicUwr(Uwr):
-    def __init__(self, simulation, num_users, max_capacity, decay_rate):
-        Uwr.__init__(self, simulation, num_users, max_capacity, decay_rate)
+    def __init__(self, simulation, channel, decay_rate):
+        Uwr.__init__(self, simulation, channel, decay_rate)
 
     def select(self, rates):
         p = uwr_position(self.constants, self.total, self.possible)
@@ -143,5 +147,5 @@ class ClassicUwr(Uwr):
 
         if is_small:
             return numpy.argmax(obligatory * uwr_potential_derivatives(p))
-        else
+        else:
             return numpy.argmax(-obligatory)

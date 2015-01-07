@@ -35,6 +35,9 @@ class Constant:
     def next_rates(self):
         return self.rates
 
+    def max_bits_per_interval(self):
+        return numpy.max(self.rates)
+
 
 class SimpleRayleigh:
     '''
@@ -54,12 +57,15 @@ class SimpleRayleigh:
         self.max_bits_per_interval = max_bits_per_interval
 
     def get_rate(self, linear_mean):
-        snr = numpy.random.exponential(m)
+        snr = numpy.random.exponential(linear_mean)
         bps = shannon_bits_per_second(snr, self.bandwidth_hz)
         return min(bps, self.max_bits_per_interval)
 
     def next_rates(self):
         return numpy.array([self.get_rate(m) for m in self.linear_means])
+
+    def max_bits_per_interval(self):
+        return self.max_bits_per_interval
 
 
 class EncodedRayleigh:
@@ -76,10 +82,17 @@ class EncodedRayleigh:
         self.symbols_per_interval = symbols_per_interval
 
     def get_rate(self, linear_mean):
-        snr = numpy.random.exponential(m)
-        bpi = self.symbols_per_interval * encoded_bits_per_symbol(snr)
+        snr = numpy.random.exponential(linear_mean)
+        return self.symbols_per_interval * encoded_bits_per_symbol(snr)
 
     def next_rates(self):
         return numpy.array([self.get_rate(m) for m in self.linear_means])
+
+    def max_bits_per_interval(self):
+        return 4.8 * self.symbols_per_interval
+
+    @staticmethod
+    def means_from_user_classes(num_poor, num_average, num_good):
+        return [7] * num_poor + [16] * num_average + [23] * num_good
 
 
