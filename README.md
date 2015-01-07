@@ -36,9 +36,9 @@ computed results.
 
 In order to plot results you need to use another program from this directory:
 ```
-python infocom_plot.py infocom.sql welfare
+python infocom_plots.py infocom.sql simple_welfare
 ```
-It will plot welfare for different algorithms over time. Run this program with no arguments
+It will plot welfare for different algorithms on simple channel (no encoding). Run this program with no arguments
 to see other plot options.
 
 ### Defining New Simulations
