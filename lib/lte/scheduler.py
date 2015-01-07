@@ -1,5 +1,6 @@
 import numpy
 import pdb
+import hyperbolic
 
 
 class MaxRate:
@@ -43,44 +44,7 @@ class RoundRobin:
         return self.time % self.simulation.num_users
 
 
-
-def uwr_potential_value(position):
-    outer = 1.0 / numpy.outer(position, position) 
-    outer -= numpy.triu(outer)
-    return numpy.sum(outer.flatten()) 
-
-
-def uwr_potential_derivatives(position):
-    inv = 1.0 / (position + 1e-10)
-    base = numpy.sum(inv) - inv
-    return - base * inv * inv
-
-
-def uwr_position(constants, total, possible):
-    return constants.A + total - constants.delta * possible
-
-
-def uwr_update_possible(constants, rates, possible):
-    return possible * constants.decay_rate + rates
-
-
-def uwr_update_total(constants, rates, selected, total):
-    p = total * constants.decay_rate 
-    p[selected] += rates[selected]
-    return p
-
-
-def uwr_is_feasible(constants, total, possible):
-    position = uwr_position(constants, total, possible)
-    if numpy.any(position < 0):
-        return False
-
-    n = constants.num_users
-    maxp = (n * (n - 1.0)) / 2.0 / constants.A ** 2
-    return uwr_potential_value(position) <= maxp
-
-
-class UwrConstants:
+class HyperbolicConstants:
     def __init__(self, num_users, max_capacity, decay_rate):
         self.num_users = num_users
         self.max_capacity = max_capacity
@@ -89,18 +53,18 @@ class UwrConstants:
         self.decay_rate = decay_rate
 
 
-class Uwr:
+class Hyperbolic:
     def __init__(self, simulation, channel, decay_rate):
-        self.constants = UwrConstants(simulation.num_users, \
+        self.constants = HyperbolicConstants(simulation.num_users, \
                 channel.max_bits_per_interval(), decay_rate)
         self.total = numpy.zeros(simulation.num_users)
         self.possible = numpy.zeros(simulation.num_users)
 
     def get_updated_total(self, rates, selected):
-        return uwr_update_total(self.constants, rates, selected, self.total)
+        return hyperbolic.update_total(self.constants, rates, selected, self.total)
 
     def get_updated_possible(self, rates):
-        return uwr_update_possible(self.constants, rates, self.possible)
+        return hyperbolic.update_possible(self.constants, rates, self.possible)
 
     def update_state(self, rates, selected):
         self.possible = self.get_updated_possible(rates)
@@ -115,9 +79,9 @@ class Uwr:
         return selected
 
 
-class MaxRateUwr(Uwr):
+class MaxRateHyperbolic(Hyperbolic):
     def __init__(self, simulation, channel, decay_rate):
-        Uwr.__init__(self, simulation, channel, decay_rate)
+        Hyperbolic.__init__(self, simulation, channel, decay_rate)
 
     def select(self, rates):
         best = None
@@ -125,7 +89,7 @@ class MaxRateUwr(Uwr):
         for i in xrange(self.constants.num_users):
             t = self.get_updated_total(rates, i)
             
-            if not uwr_is_feasible(self.constants, t, p):
+            if not hyperbolic.is_feasible(self.constants, t, p):
                 continue
 
             current = (rates[i], i)
@@ -136,17 +100,17 @@ class MaxRateUwr(Uwr):
         return best[1]
 
 
-class ClassicUwr(Uwr):
+class GradientHyperbolic(Hyperbolic):
     def __init__(self, simulation, channel, decay_rate):
-        Uwr.__init__(self, simulation, channel, decay_rate)
+        Hyperbolic.__init__(self, simulation, channel, decay_rate)
 
     def select(self, rates):
-        p = uwr_position(self.constants, self.total, self.possible)
+        p = hyperbolic.get_position(self.constants, self.total, self.possible)
         thr = 6 * self.constants.num_users ** 2
         obligatory = - self.constants.delta * rates
         is_small = numpy.all(obligatory * thr <= p)
 
         if is_small:
-            return numpy.argmax(obligatory * uwr_potential_derivatives(p))
+            return numpy.argmax(obligatory * hyperbolic.potential_derivatives(p))
         else:
             return numpy.argmax(-obligatory)

@@ -4,7 +4,7 @@ import itertools
 # if any of them fails, check your PYTHONPATH environment variable
 import lte.infrastructure as inf
 from lte.channel import EncodedRayleigh, SimpleRayleigh
-from lte.scheduler import ProportionalFair, MaxRate, ClassicUwr, MaxRateUwr
+from lte.scheduler import ProportionalFair, MaxRate, GradientHyperbolic, MaxRateHyperbolic
 
 # list of all investigated channels, with corresponding constructor arguments
 channels = [
@@ -16,8 +16,8 @@ channels = [
 schedulers = [
     (MaxRate, {}),
     (ProportionalFair, {'tau' : 0.03}),
-    (ClassicUwr, {'decay_rate' : 1.0}),
-    (MaxRateUwr, {'decay_rate' : 1.0})
+    (GradientHyperbolic, {'decay_rate' : 1.0}),
+    (MaxRateHyperbolic, {'decay_rate' : 1.0})
 ]
 
 cross = itertools.product(channels, schedulers)
