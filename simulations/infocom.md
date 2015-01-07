@@ -2,7 +2,7 @@
 
 Algorithms were evaluated in context of two channel models:
 
-1. Channel from paper [dronee]. 
+### Channel from paper [dronee]. 
 
 Since authors ommited some important details, like channel baudrate, they had to be found elsewhere. 
 Table in paper 1 relates SNR values to number of bits in one OFDM symbol, but authors didn't mention 
@@ -20,7 +20,7 @@ Constant A becomes
 ```
 A = 12 * 3 * 3 * 14 * 4.8 = 7257.6
 ```
-2. Stationary Rayleigh channel with no coding scheme 
+### Stationary Rayleigh channel with no coding scheme 
 
 Linear SNR values for particular user are IID random variables obeying exponential distribution just like in [dronee]. To
 calculate number of bits transmitted in each scheduling interval, we use Shannon theorem:
@@ -53,24 +53,24 @@ Def: T, L - like in paper
 Def: User i state in time t - pair (T(i, t), L(i, t))
 Def: Round efficiency - \frac{Number of transferred bits}{Sum of number possible transferred bits for each user}
 
-1. Total vs Possible
+### Total vs Possible
 
 Each point on this plot is a state of particular user in time t, averaged over all simulation repetitions. 
 Black line represents lower bound on transfer proven for UWR algorithm, i.e:
 ```
 y = \delta * x - A 
 ```
-2. Channel Rate
+### Channel Rate
 
 Channel rate for one user from each user class (see channel model for more details). To keep this plot readable
 I constrained it to 100 slots on horizontal axis.
 
-3. Round Efficiency
+### Round Efficiency
 
 Empirical cumulative distribution function of round efficiency, where samples are taken from all repetitions of
 simulation for particular algorithm.
 
-4. Welfare
+### Welfare
 
 Welfare function for proportional fair algorithm can be found in  [survey]
 
@@ -79,16 +79,15 @@ simulation repetitions.
 
 
 ## Simulation Parameters
-
+```
 Duration = 10000 scheduling intervals
 Number of users = 3
 Number of repetitions for each set of parameters = 10
-
+```
 
 ## References
 
 Papers are in simulations/for\_paper directory (on dropbox)
-
-[dronee] COMCOM\_DRONEE.pdf
-[lte\_in\_nutshell] lte\_in\_nutshell.pdf
-[survey] survey.pdf
+* [dronee] COMCOM\_DRONEE.pdf
+* [lte\_in\_nutshell] lte\_in\_nutshell.pdf
+* [survey] survey.pdf
