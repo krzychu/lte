@@ -1,11 +1,15 @@
 import lte.tool
 from lte.plot import *
 
-
+# this class defines all plots available
+# database access, plot selection, etc. are hidden in the base class
 class InfocomPlotter(lte.tool.PlottingTool):
     def __init__(self):
         lte.tool.PlottingTool.__init__(self, 'INFOCOM plots')
 
+        # here we define what happens, when selected plot name is 'welfare'
+        # keyword arguments are passed to underlying matplotlib library, 
+        # so refer to its documentation
         self.add_plot("welfare", [
             Welfare(1, label='MaxRate',          color='r', marker='v', markevery=200),
             Welfare(2, label='ProportionalFair', color='g', marker='^', markevery=200),

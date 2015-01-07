@@ -42,5 +42,6 @@ It will plot welfare for different algorithms over time. Run this program with n
 to see other plot options.
 
 ### Defining New Simulations
+See `infocom_simulation.py` and `infocom_plot.py` for commented example.
 
 ## Internals
