@@ -45,3 +45,61 @@ to see other plot options.
 See `infocom_simulation.py` and `infocom_plot.py` for commented example.
 
 ## Internals
+Simulator works in two stages: simulation and plotting. Simulation is computationaly expensive
+so its results are saved to the database, for later processing and plotting.
+
+### Main Loop
+Main loop of the simulation can be found in `lib/lte/infrastructure.py`:
+```python
+def execute_once(sim, seed):
+    channel = sim.channel(sim, **sim.channel_args)
+    scheduler = sim.scheduler(sim, channel, **sim.scheduler_args)
+   
+    rate_history = []
+    selection_history = []
+    for t in xrange(sim.duration):
+        rates = channel.next_rates()
+        rate_history.append(rates)
+
+        active_user = scheduler.get_active_user(rates)
+        selection_history.append(active_user)
+
+    rate_history = numpy.array(rate_history)
+    selection_history = numpy.array(selection_history)
+
+    return Execution(seed, rate_history, selection_history)
+```
+
+### Database
+Database is a sqlite3 database, so python can access it using just standard library. It consists
+of just two tables:
+```sql
+CREATE TABLE Simulation 
+(
+    num_users INTEGER, 
+    duration INTEGER, 
+    chanel TEXT,
+    channel_args TEXT,
+    scheduler TEXT,
+    scheduler_args TEXT
+);
+
+CREATE TABLE Execution
+(
+    simulation_id INTEGER NOT NULL,
+    seed INTEGER,
+    rate_history BLOB,
+    selection_history BLOB,
+    FOREIGN KEY(simulation_id) REFERENCES Simulation(ROWID) ON DELETE CASCADE 
+);
+```
+`Simulation` holds general settings, while `Execution` contains results of
+particular simulation execution. `rate_history` and `selection_history` are
+base64 encoded numpy tables of sizes (duration, num\_users) and (duration, 1) 
+respectively. Both tables have no explicitly defined primary key, but sqlite
+provides special `ROWID` column which is utilized for this purpose. When defining
+plots `simulation_id` is required and it's precisely `ROWID` from `Simulation` table.
+
+Convenient database access is provided by `lte.infrastructure.SqlStorage` class.
+
+### Plots
