@@ -69,6 +69,7 @@ def uwr_update_total(constants, rates, selected, total):
     p[selected] += rates[selected]
     return p
 
+
 def uwr_is_feasible(constants, total, possible):
     position = uwr_position(constants, total, possible)
     if numpy.any(position < 0):

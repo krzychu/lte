@@ -43,10 +43,11 @@ class PlottingTool:
                 if plot.simulation_id:
                     executions = storage.get_all_executions(plot.simulation_id)
                 else:
-                    executions = []
+                    executions = None
 
                 plot.draw(executions, plotter)
-
+        
+        plotter.legend()
         plotter.show() 
 
 

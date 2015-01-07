@@ -3,29 +3,30 @@ import pdb
 
 
 class Plot:
-    def __init__(self, simulation_id, label, color):
+    def __init__(self, simulation_id, style):
         self.simulation_id = simulation_id
-        self.common_args = {'label': label, 'color': color}
+        self.style = style
 
     def draw(self, executions, plotter):
         pass
 
 
 class Line(Plot):
-    def __init__(self, label, color, line, interval):
-        Plot.__init__(self, None, label, color)
-        self.line = line
+    def __init__(self, shift, slope, interval, **style):
+        Plot.__init__(self, None, style)
+        self.shift = shift
+        self.slope = slope
         self.interval = numpy.array(interval)
 
     def draw(self, executions, plotter):
         assert executions == None
-        shift, slope = self.line
-        plotter.plot(self.interval, shift + slope * self.interval, **self.common_args)
+        plotter.plot(self.interval, self.shift + self.slope * self.interval, \
+                **self.style)
 
 
 class TotalVsPossible(Plot):
-    def __init__(self, simulation_id, label, color):
-        Plot.__init__(self, simulation_id, label, color)
+    def __init__(self, simulation_id, **style):
+        Plot.__init__(self, simulation_id, style)
 
     def draw(self, executions, plotter):
         assert len(executions) > 0
@@ -44,12 +45,12 @@ class TotalVsPossible(Plot):
         possible /= len(executions)
         total /= len(executions)
 
-        plotter.scatter(possible.flatten(), total.flatten(), **self.common_args)
+        plotter.plot(possible.flatten(), total.flatten(), **self.style)
 
 
 class RoundEfficiency(Plot):
-    def __init__(self, simulation_id, label, color):
-        Plot.__init__(self, simulation_id, label, color)    
+    def __init__(self, simulation_id, **style):
+        Plot.__init__(self, simulation_id, style)    
 
     def get_efficiencies(self, execution):
         rates = numpy.sum(execution.rate_history, axis=1, dtype='f')
@@ -62,12 +63,12 @@ class RoundEfficiency(Plot):
 
         efficiencies = numpy.sort(numpy.hstack([self.get_efficiencies(x) for x in executions]))
         ys = numpy.arange(len(efficiencies), dtype='f') / len(efficiencies)
-        plotter.plot(efficiencies, ys, **self.common_args)
+        plotter.plot(efficiencies, ys, **self.style)
 
 
 class Welfare(Plot):
-    def __init__(self, simulation_id, label, color):
-        Plot.__init__(self, simulation_id, label, color)
+    def __init__(self, simulation_id, **style):
+        Plot.__init__(self, simulation_id, style)
 
     def draw(self, executions, plotter):
         plotter.xlabel('Time')
@@ -80,7 +81,7 @@ class Welfare(Plot):
             welfare[welfare < 0] = 0
             avg += welfare / n
         
-        plotter.plot(numpy.arange(len(avg)), avg, **self.common_args)
+        plotter.plot(numpy.arange(len(avg)), avg, **self.style)
 
 
 

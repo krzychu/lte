@@ -10,9 +10,9 @@ channel_args = {
 }
 
 schedulers = [
-#    (MaxRate, {}),
-#    (ProportionalFair, {'tau' : 0.03}),
-#    (ClassicUwr, {'decay_rate' : 1.0}),
+    (MaxRate, {}),
+    (ProportionalFair, {'tau' : 0.03}),
+    (ClassicUwr, {'decay_rate' : 1.0}),
     (MaxRateUwr, {'decay_rate' : 1.0})
 ]
 
