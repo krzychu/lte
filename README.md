@@ -48,6 +48,12 @@ See `infocom_simulation.py` and `infocom_plot.py` for commented example.
 Simulator works in two stages: simulation and plotting. Simulation is computationaly expensive
 so its results are saved to the database, for later processing and plotting.
 
+### Data Flow
+Settings of each simulation are stored in `lte.infrastructure.Simulation` object. Simulation
+can be executed many times, each time producing a `lte.infrastructure.Execution` object
+holding experiment results. Both sorts of objects are saved to the database, to
+be later read by plotting tools.
+
 ### Main Loop
 Main loop of the simulation can be found in `lib/lte/infrastructure.py`:
 ```python
@@ -101,5 +107,3 @@ provides special `ROWID` column which is utilized for this purpose. When definin
 plots `simulation_id` is required and it's precisely `ROWID` from `Simulation` table.
 
 Convenient database access is provided by `lte.infrastructure.SqlStorage` class.
-
-### Plots
