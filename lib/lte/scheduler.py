@@ -38,3 +38,110 @@ class RoundRobin:
 
     def get_active_user(self, rates):
         return self.simulation.time % self.simulation.num_users
+
+
+
+def uwr_potential_value(position):
+    outer = 1.0 / np.outer(position, position) 
+    outer -= np.triu(outer)
+    return np.sum(outer.flatten()) 
+
+
+def uwr_potential_derivatives(position):
+    inv = 1.0 / position
+    base = np.sum(inv) - inv
+    return - base * inv * inv
+
+
+def uwr_position(constants, total, possible):
+    return constants.A * total - constants.delta * possible
+
+
+def uwr_update_possible(constants, rates, possible):
+    return possible * constants.decay_rate + rates
+
+
+def uwr_update_total(constants, rates, selected, total):
+    p = total * constants.decay_rate 
+    p[selected] += rates[selected]
+    return p
+
+def uwr_is_feasible(constants, total, possible):
+    position = uwr_position(constants, total, possible)
+    if numpy.any(position < 0):
+        return False
+
+    n = constants.num_users
+    maxp = (n * (n - 1.0)) / 2.0 / constants.A ** 2
+    return uwr_potential_value(position) <= maxp
+
+
+class UwrConstants:
+    def __init__(self, num_users, max_capacity, decay_rate):
+        self.num_users = num_users
+        self.max_capacity = max_capacity
+        self.delta = 1.0 / (1 + num_users)
+        self.A = 12.0 * num_users * num_users * max_capacity
+        self.decay_rate = decay_rate
+
+
+class Uwr:
+    def __init__(self, simulation, max_capacity, decay_rate):
+        self.constants = UwrConstants(simulation.num_users, max_capacity, decay_rate)
+        self.total = numpy.zeros(simulation.num_users)
+        self.possible = numpy.zeros(simulation.num_users)
+
+    def get_updated_total(self, rates, selected):
+        return uwr_update_total(self.constants, rates, selected, self.total)
+
+    def get_updated_possible(self, rates):
+        return uwr_update_possible(self.constants, rates, self.possible)
+
+    def update_state(self, rates, selected):
+        self.possible = self.get_updated_possible(rates)
+        self.total = self.get_updated_total(rates, selected)
+
+    def select(self, rates):
+        raise NotImplementedError()
+
+    def get_active_user(self, rates):
+        selected = self.select(rate)
+        self.update_state(self, rates, selected)
+        return selected
+
+
+class MaxRateUwr(Uwr):
+    def __init__(self, simulation, num_users, max_capacity, decay_rate):
+        Uwr.__init__(self, simulation, num_users, max_capacity, decay_rate)
+
+    def select(self, rates):
+        best = None
+        t = self.get_updated_total(rates)
+        for i in xrange(self.num_users):
+            p = self.get_updated_possible(rates, i)
+            
+            if not uwr_is_feasible(self.constants, t, p):
+                continue
+
+            current = (rates[i], i)
+            if not best or best < current
+                best = current
+
+        assert best
+        return best[1]
+
+
+class ClassicUwr(Uwr):
+    def __init__(self, simulation, num_users, max_capacity, decay_rate):
+        Uwr.__init__(self, simulation, num_users, max_capacity, decay_rate)
+
+    def select(self, rates):
+        p = uwr_position(self.constants, self.total, self.possible)
+        thr = 6 * self.constants.num_users ** 2
+        obligatory = - self.constants.delta * rates
+        is_small = numpy.all(obligatory * thr <= p)
+
+        if is_small:
+            return numpy.argmax(obligatory * uwr_potential_derivatives(p))
+        else
+            return numpy.argmax(-obligatory)
