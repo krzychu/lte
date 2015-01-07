@@ -1,22 +1,18 @@
+import itertools
+
 # necessary imports
 # if any of them fails, check your PYTHONPATH environment variable
 import lte.infrastructure as inf
-from lte.channel import EncodedRayleigh
+from lte.channel import EncodedRayleigh, SimpleRayleigh
 from lte.scheduler import ProportionalFair, MaxRate, ClassicUwr, MaxRateUwr
 
-# all simulations will use encoded rayleigh channel
-channel = EncodedRayleigh # shortcut to its constructor
+# list of all investigated channels, with corresponding constructor arguments
+channels = [
+    (EncodedRayleigh, EncodedRayleigh.args_from_user_classes(14, 1, 1, 1)),
+    (SimpleRayleigh, SimpleRayleigh.args_from_user_classes(20e6, 1e-3, 35, 1, 1, 1))
+]
 
-# dictionary containing necessary constructor arguments
-# new channel object will be created for each execution
-# so we need to store them somewhere
-channel_args = {
-    'means_db' : EncodedRayleigh.means_from_user_classes(1, 1, 1), 
-    'symbols_per_interval' : 14
-}
-
-# list of all investigated schedulers, with corresponding 
-# constructor arguments
+# list of all investigated schedulers, with corresponding constructor arguments
 schedulers = [
     (MaxRate, {}),
     (ProportionalFair, {'tau' : 0.03}),
@@ -24,13 +20,15 @@ schedulers = [
     (MaxRateUwr, {'decay_rate' : 1.0})
 ]
 
+cross = itertools.product(channels, schedulers)
+
 # results will be saved to infocom.sql file. 
 # 'with' statement ensures that changes will be saved
 with inf.SqlStorage('infocom.sql') as storage:
     # we iterate schedulers, create simulation objects
     # and execute them
-    for (scheduler, args) in schedulers:
-        print str(scheduler)
+    for ((channel, channel_args), (scheduler, scheduler_args)) in cross:
+        print str(channel), str(scheduler)
 
         simulation = inf.Simulation()
         simulation.channel = channel
@@ -38,7 +36,7 @@ with inf.SqlStorage('infocom.sql') as storage:
         simulation.num_users = 3
         simulation.duration = 10000
         simulation.scheduler = scheduler
-        simulation.scheduler_args = args
+        simulation.scheduler_args = scheduler_args
 
         inf.execute_all(storage, simulation, 10)
 
