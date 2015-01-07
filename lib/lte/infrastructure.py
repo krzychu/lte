@@ -118,6 +118,10 @@ class SqlStorage:
             self.connection.execute(create_simulations_table)
             self.connection.execute(create_executions_table)
 
+    def assert_newly_created(self):
+        if self.existed:
+            raise RuntimeError("Remove or rename your simulation database.")
+
     def __enter__(self):
         return self
 
@@ -126,7 +130,7 @@ class SqlStorage:
         self.connection.close()
 
     def add_simulation(self, sim):
-        assert not self.existed
+        self.assert_newly_created()
         t = (sim.num_users, sim.duration, \
             str(sim.channel), json.dumps(sim.channel_args), \
             str(sim.scheduler), json.dumps(sim.scheduler_args))
@@ -136,7 +140,7 @@ class SqlStorage:
             self.sim_id[sim] = c.lastrowid
 
     def add_execution(self, sim, exe):
-        assert not self.existed
+        self.assert_newly_created()
         if not sim in self.sim_id:
             raise Exception('Simulation not in the database')
 
